@@ -1,0 +1,48 @@
+name: Update Blog Posts
+
+on:
+  push:
+    branches:
+      - main # 워크플로우를 트리거할 브랜치
+  workflow_dispatch: # 수동 실행
+  schedule:
+    - cron: '0 0 * * *' # 매일 자정 실행
+
+jobs:
+  update_blog:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Set time zone
+      run: |
+        sudo ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+        echo "Asia/Seoul" | sudo tee /etc/timezone
+        date
+
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+        git add .
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update blog posts"
+          git push https://${{ secrets.GH_PAT }}@github.com/cdh1126/velog.git
+        fi
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install feedparser gitpython
+
+    - name: Run script
+      run: python scripts/update_blog.py
